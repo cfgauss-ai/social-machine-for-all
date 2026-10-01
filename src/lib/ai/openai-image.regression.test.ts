@@ -42,12 +42,14 @@ vi.mock('@/lib/supabase/admin', () => ({
 describe('REGRESSÃO: background preto nas capas de Reel — openai-image.ts', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    delete process.env.OPENROUTER_API_KEY
     process.env.OPENAI_API_KEY = 'sk-test-fake'
   })
 
   afterEach(() => {
     delete process.env.OPENAI_API_KEY
     delete process.env.OPENAI_IMAGE_MODEL
+    delete process.env.OPENROUTER_API_KEY
   })
 
   it('rotula erro de billing como [BILLING] na mensagem de erro', async () => {
@@ -171,6 +173,7 @@ describe('REGRESSÃO: background preto nas capas de Reel — openai-image.ts', (
 describe('REGRESSÃO: cascade Gemini → gpt-image-1 com OpenAI explícito para premium/fallback', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    delete process.env.OPENROUTER_API_KEY
     process.env.OPENAI_API_KEY = 'sk-test-fake'
     process.env.GEMINI_API_KEY_1 = 'gemini-key-1-fake'
     process.env.GEMINI_API_KEY_2 = 'gemini-key-2-fake'
@@ -180,6 +183,7 @@ describe('REGRESSÃO: cascade Gemini → gpt-image-1 com OpenAI explícito para 
     delete process.env.OPENAI_API_KEY
     delete process.env.GEMINI_API_KEY_1
     delete process.env.GEMINI_API_KEY_2
+    delete process.env.OPENROUTER_API_KEY
   })
 
   it('por padrão usa Gemini key 1 antes de OpenAI', async () => {

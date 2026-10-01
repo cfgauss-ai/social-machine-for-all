@@ -111,6 +111,7 @@ describe('REGRESSÃO: gpt-image-2 removido dos arquivos Brand', () => {
 describe('REGRESSÃO: Gemini é chamado primeiro no generatebrandReelCover', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    delete process.env.OPENROUTER_API_KEY
     process.env.OPENAI_API_KEY    = 'sk-test-fake'
     process.env.GEMINI_API_KEY_2  = 'gemini-key-fake'
   })
@@ -118,6 +119,7 @@ describe('REGRESSÃO: Gemini é chamado primeiro no generatebrandReelCover', () 
   afterEach(() => {
     delete process.env.OPENAI_API_KEY
     delete process.env.GEMINI_API_KEY_2
+    delete process.env.OPENROUTER_API_KEY
   })
 
   it('chama Gemini (generativelanguage.googleapis.com) antes de qualquer chamada OpenAI', async () => {
