@@ -1,4 +1,4 @@
-import { loadSettings } from '@/lib/settings/load-settings'
+import { getVariable } from '@/lib/settings/load-settings'
 
 export const WORKSPACE_FEATURES = [
   'instagram_image_generation',
@@ -35,12 +35,13 @@ function parseBoolean(value: unknown): boolean {
  * installation cannot accidentally activate publishing-related behavior.
  */
 export async function loadWorkspaceFeatures(workspaceId: string): Promise<WorkspaceFeatures> {
-  const settings = await loadSettings(workspaceId)
   const features = { ...defaults }
-  const rawSettings = settings as unknown as Record<string, unknown>
-  for (const feature of WORKSPACE_FEATURES) {
-    features[feature] = parseBoolean(rawSettings[`feature_${feature}`])
-  }
+  const values = await Promise.all(
+    WORKSPACE_FEATURES.map((feature) => getVariable(workspaceId, `feature_${feature}`)),
+  )
+  WORKSPACE_FEATURES.forEach((feature, index) => {
+    features[feature] = parseBoolean(values[index])
+  })
   return features
 }
 
