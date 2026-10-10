@@ -1,5 +1,7 @@
 import { generateText, stepCountIs } from 'ai'
 import { getModel, getModelViaOpenRouter } from './provider'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { resolveJevRoute } from './jev-router'
 
 export interface ToolDefinition {
   name: string
@@ -85,7 +87,7 @@ export async function executeToolLoop(options: ToolLoopOptions): Promise<ToolLoo
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const runGenerate = (resolvedModel: any, viaOpenRouter: boolean) =>
+  const runGenerate = (resolvedModel: any, viaOpenRouter: boolean, providerOptions?: Parameters<typeof generateText>[0]['providerOptions']) =>
     generateText({
       model: resolvedModel,
       system: systemPrompt,
@@ -107,15 +109,26 @@ export async function executeToolLoop(options: ToolLoopOptions): Promise<ToolLoo
       // vazia. Cada provider só lê sua própria chave em providerOptions, então
       // não tem conflito em mandar as duas juntas pra um model reference que
       // não é nem Anthropic nem DeepSeek.
-      ...(viaOpenRouter ? {} : { providerOptions: {
+      ...(viaOpenRouter ? { providerOptions } : { providerOptions: {
         anthropic: { cacheControl: { type: 'ephemeral' } },
         deepseek: { thinking: { type: 'disabled' } },
       } }),
     })
 
+  const jevRoute = resolveJevRoute()
+  const jevKey = process.env.OPENROUTER_API_KEY
   const openRouterModel = getModelViaOpenRouter(model)
   let result: Awaited<ReturnType<typeof runGenerate>>
-  if (openRouterModel) {
+  if (jevRoute.enabled && jevKey) {
+    try {
+      result = await runGenerate(createOpenRouter({ apiKey: jevKey })(jevRoute.model), true, jevRoute.providerOptions)
+    } catch (err) {
+      console.warn('[tool-loop] Jev failed — restarting full loop on fixed fallback:', err instanceof Error ? err.message : err)
+      result = openRouterModel
+        ? await runGenerate(openRouterModel, true)
+        : await runGenerate(getModel(model), false)
+    }
+  } else if (openRouterModel) {
     try {
       result = await runGenerate(openRouterModel, true)
     } catch (err) {
@@ -162,7 +175,7 @@ export async function generateSimpleText(options: {
   temperature?: number
 }): Promise<{ text: string; tokensUsed: number }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const runGenerate = (resolvedModel: any, viaOpenRouter: boolean) =>
+  const runGenerate = (resolvedModel: any, viaOpenRouter: boolean, providerOptions?: Parameters<typeof generateText>[0]['providerOptions']) =>
     generateText({
       model: resolvedModel,
       system: options.systemPrompt,
@@ -170,15 +183,26 @@ export async function generateSimpleText(options: {
       maxOutputTokens: options.maxTokens ?? 4096,
       temperature: options.temperature ?? 0.7,
       // deepseek.thinking:disabled (21/07/2026) — ver comentário em executeToolLoop() acima.
-      ...(viaOpenRouter ? {} : { providerOptions: {
+      ...(viaOpenRouter ? { providerOptions } : { providerOptions: {
         anthropic: { cacheControl: { type: 'ephemeral' } },
         deepseek: { thinking: { type: 'disabled' } },
       } }),
     })
 
+  const jevRoute = resolveJevRoute()
+  const jevKey = process.env.OPENROUTER_API_KEY
   const openRouterModel = getModelViaOpenRouter(options.model)
   let result: Awaited<ReturnType<typeof runGenerate>>
-  if (openRouterModel) {
+  if (jevRoute.enabled && jevKey) {
+    try {
+      result = await runGenerate(createOpenRouter({ apiKey: jevKey })(jevRoute.model), true, jevRoute.providerOptions)
+    } catch (err) {
+      console.warn('[tool-loop] Jev failed — falling back to fixed model:', err instanceof Error ? err.message : err)
+      result = openRouterModel
+        ? await runGenerate(openRouterModel, true)
+        : await runGenerate(getModel(options.model), false)
+    }
+  } else if (openRouterModel) {
     try {
       result = await runGenerate(openRouterModel, true)
     } catch (err) {

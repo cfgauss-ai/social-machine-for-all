@@ -8,7 +8,8 @@
   },
   "overrides": {
     "postcss": "8.5.23",
-    "sharp": "0.35.4"
+    "sharp": "0.35.5",
+    "braces": "https://github.com/luisroquette-labs/braces/archive/675def268ad3a16e0fc268224f101dc82f347df7.tar.gz"
   },
   "scripts": {
     "dev": "next dev",
